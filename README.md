@@ -1,3 +1,4 @@
 # MAUVE: Multimodal Audio-Text Evaluation for Automated Audio Captioning
+[[`Paper`]()]
 
-MAUVE (Multimodal AUdio-caption EValuation) is a novel metric specifically designed for the evaluation of automated audio captioning (AAC) systems. Unlike traditional evaluation metrics that only compare machine-generated captions to human references, MAUVE leverages both audio and text to provide a comprehensive evaluation. It integrates audio content and linguistic quality, leading to more accurate assessments that align closely with human judgments.
+MAUVE (Multimodal AUdio-caption EValuation) is a metric designed for evaluating automated audio captioning (AAC) systems. Unlike metrics that compare machine-generated captions solely to human references, MAUVE uses both audio and text to improve evaluation. By integrating audio content and linguistic quality, it produces assessments that align with human judgments.
