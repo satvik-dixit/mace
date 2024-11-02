@@ -30,7 +30,7 @@ def get_text_score(all_preds_text, all_refs_text, method='sentence-bert', averag
     all_preds_text = np.array(all_preds_text, dtype=str)
     all_refs_text = np.array(all_refs_text, dtype=str)
 
-    if method=='sentence-bert' or method=='ms-CLAP':
+    if method=='sentence-bert' or method=='clap-text-text':
         score = torch.zeros((N, K))
     else:
         score = torch.zeros((N, 1))
@@ -43,21 +43,21 @@ def get_text_score(all_preds_text, all_refs_text, method='sentence-bert', averag
             score[:,i] = torch.Tensor([cosine_similarity(input, target) for input, target in zip(preds_sb, refs_sb[:,i])])
     
    # For CLAP
-    elif method == 'ms-CLAP':
+    elif method == 'clap-text-text':
         preds_clap = torch.stack([clap_model.get_text_embeddings([pred]).to('cuda') for pred in all_preds_text], dim=0).squeeze()
         refs_clap = torch.stack([clap_model.get_text_embeddings(refs).to('cuda') for refs in all_refs_text], dim=0)
         for i in range(K):
             score[:, i] = torch.Tensor([cosine_similarity(input, target) for input, target in zip(preds_clap, refs_clap[:, i])])
 
     # For Audio CLAP
-    elif method == 'ms_clap_audio_caption':
+    elif method == 'clap-audio-text':
         if audio_files is None:
             raise ValueError("Audio files must be provided for ms_clap_audio_caption.")
         preds_clap = torch.stack([clap_model.get_text_embeddings([pred]).to('cuda') for pred in all_preds_text], dim=0).squeeze()
         if dataset_name=='clotho':
-            audio_files = [f'/content/fense/clotho_eval_audio/{audio}' for audio in audio_files]
+            audio_files = [f'/content/mace/clotho_eval_audio/{audio}' for audio in audio_files]
         elif dataset_name=='audiocaps':
-            audio_files = [f'/content/fense/audiocaps_caption_eval/{audio}.wav' for audio in audio_files]
+            audio_files = [f'/content/mace/audiocaps_eval_audio/{audio}.wav' for audio in audio_files]
         audio_embs = torch.stack([clap_model.get_audio_embeddings([audio_file]).to('cuda') for audio_file in audio_files], dim=0)
         for i in range(1):
             score[:, i] = torch.Tensor([cosine_similarity(input, target) for input, target in zip(preds_clap, audio_embs[:, i])])
@@ -91,7 +91,7 @@ def print_accuracy(machine_score, human_score):
 
 
 if __name__ == '__main__':
-    for dataset in ['audiocaps_validation', 'clotho_validation']:
+    for dataset in ['audiocaps', 'clotho']:
         score, score0, score1 = {}, {}, {}
         mm_score, mm_score0, mm_score1 = {}, {}, {}
 
@@ -99,17 +99,17 @@ if __name__ == '__main__':
         mm_preds_text0, mm_preds_text1, mm_refs_text, mm_human_truth, mm_audio_files = get_latter(dataset)
 
         # Iterate through both embedding methods: Sentence-BERT and CLAP and CLAP_audio_caption
-        for metric in ['ms_clap_audio_caption', 'ms-CLAP', 'sentence-bert']:
+        for metric in ['clap-text-text', 'clap-audio-text', 'sentence-bert']:
             score0[metric] = get_text_score(hh_preds_text0, hh_refs_text0, metric, audio_files=hh_audio_files, dataset_name=dataset)
             score1[metric] = get_text_score(hh_preds_text1, hh_refs_text1, metric, audio_files=hh_audio_files, dataset_name=dataset)
 
             mm_score0[metric] = get_text_score(mm_preds_text0, mm_refs_text, metric, audio_files=mm_audio_files, dataset_name=dataset)
             mm_score1[metric] = get_text_score(mm_preds_text1, mm_refs_text, metric, audio_files=mm_audio_files, dataset_name=dataset)
 
-        score0['clap_combined'] = (score0['ms_clap_audio_caption'] + score0['ms-CLAP'])/2
-        score1['clap_combined'] = (score1['ms_clap_audio_caption'] + score1['ms-CLAP'])/2
-        mm_score0['clap_combined'] = (mm_score0['ms_clap_audio_caption'] + mm_score0['ms-CLAP'])/2
-        mm_score1['clap_combined'] = (mm_score1['ms_clap_audio_caption'] + mm_score1['ms-CLAP'])/2
+        score0['clap-audio'] = (score0['clap-audio-text'] + score0['clap-text-text'])/2
+        score1['clap-audio'] = (score1['clap-audio-text'] + score1['clap-text-text'])/2
+        mm_score0['clap-audio'] = (mm_score0['clap-audio-text'] + mm_score0['clap-text-text'])/2
+        mm_score1['clap-audio'] = (mm_score1['clap-audio-text'] + mm_score1['clap-text-text'])/2
 
         total_score0, total_score1, total_score = {}, {}, {}
         for metric in score0:
