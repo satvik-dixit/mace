@@ -162,8 +162,8 @@ if __name__ == '__main__':
         ##############################################################################
 
         # load pre-computed ndarray 
-        probs0 = np.load('../bert_for_fluency/cache/probs0_alltrain_{}.npy'.format(dataset))
-        probs1 = np.load('../bert_for_fluency/cache/probs1_alltrain_{}.npy'.format(dataset))
+        probs0 = np.load('../fluency_detection/probs0_alltrain_{}.npy'.format(dataset))
+        probs1 = np.load('../fluency_detection/probs1_alltrain_{}.npy'.format(dataset))
 
         score_penalty = {}
         thres = 0.97
