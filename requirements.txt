@@ -5,3 +5,7 @@ torch
 pandas
 sentence_transformers
 tqdm
+requests
+matplotlib
+scikit-learn
+transformers
