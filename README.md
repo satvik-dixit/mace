@@ -5,6 +5,18 @@ MACE (Multimodal Audio-Caption Evaluation) is a metric designed for evaluating a
 
 MACE achieves a 3.28% and 4.36% relative accuracy improvement over the FENSE metric on the AudioCaps-Eval and Clotho-Eval datasets respectively. Moreover, it significantly outperforms all the previous metrics on the audio captioning evaluation task.
 
+## Installation
+```
+git clone https://github.com/satvik-dixit/mace.git
+pip install -r requirements.txt
+cd mace
+```
+
+## Using MACE to evaluate captions
+```
+```
+
+
 ## Citation
 ```
 @misc{dixit2024maceleveragingaudioevaluating,
