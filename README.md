@@ -19,14 +19,11 @@ cd mace
 
 ## Citation
 ```
-@misc{dixit2024maceleveragingaudioevaluating,
-      title={MACE: Leveraging Audio for Evaluating Audio Captioning Systems}, 
-      author={Satvik Dixit and Soham Deshmukh and Bhiksha Raj},
-      year={2024},
-      eprint={2411.00321},
-      archivePrefix={arXiv},
-      primaryClass={cs.SD},
-      url={https://arxiv.org/abs/2411.00321}, 
+@article{dixit2024mace,
+  title={MACE: Leveraging Audio for Evaluating Audio Captioning Systems},
+  author={Dixit, Satvik and Deshmukh, Soham and Raj, Bhiksha},
+  journal={arXiv preprint arXiv:2411.00321},
+  year={2024}
 }
 ```
 
