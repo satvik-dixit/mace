@@ -1,5 +1,5 @@
 # MACE: Multimodal Audio-Text Evaluation for Automated Audio Captioning
-[[`Paper`]()]
+[[`Paper`](https://arxiv.org/abs/2411.00321v1)]
 
 MACE (Multimodal Audio-Caption Evaluation) is a metric designed for evaluating automated audio captioning (AAC) systems. Unlike metrics that compare machine-generated captions solely to human references, MACE uses both audio and text to improve evaluation. By integrating both audio and text, it produces assessments that align better with human judgments.
 
@@ -30,5 +30,10 @@ python main.py
 
 ## Citation
 ```
-Citation
+@article{dixit2024mace,
+  title={MACE: Leveraging Audio for Evaluating Audio Captioning Systems},
+  author={Dixit, Satvik and Deshmukh, Soham and Raj, Bhiksha},
+  journal={arXiv preprint arXiv:2411.00321},
+  year={2024}
+}
 ```
