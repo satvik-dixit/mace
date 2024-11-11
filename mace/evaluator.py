@@ -10,6 +10,7 @@ from functools import lru_cache
 # from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer
 from transformers import logging as trf_logging
+import transformers
 from msclap import CLAP
 
 PRETRAIN_ECHECKERS = {
@@ -17,6 +18,11 @@ PRETRAIN_ECHECKERS = {
     'echecker_clotho_audiocaps_tiny': ("https://github.com/blmoistawinde/fense/releases/download/V0.1/echecker_clotho_audiocaps_tiny.ckpt", "90ed0ac5033ec497ec66d4f68588053813e085671136dae312097c96c504f673"),
     "none": (None, None)
 }
+
+def _use_new_echecker_loading() -> bool:
+    version = transformers.__version__
+    major, minor, _patch = map(int, version.split("."))
+    return major > 4 or (major == 4 and minor >= 31)
 
 def load_pretrain_echecker(echecker_model, device='cuda', use_proxy=False, proxies=None):
     from .download_utils import RemoteFileMetadata, check_download_resource
@@ -28,6 +34,11 @@ def load_pretrain_echecker(echecker_model, device='cuda', use_proxy=False, proxi
         checksum=checksum)
     file_path = check_download_resource(remote, use_proxy, proxies)
     model_states = torch.load(file_path)
+
+    state_dict = model_states['state_dict']
+    if _use_new_echecker_loading():
+        state_dict.pop("encoder.embeddings.position_ids")
+
     clf = BERTFlatClassifier(model_type=model_states['model_type'], num_classes=model_states['num_classes'])
     clf.load_state_dict(model_states['state_dict'])
     clf.eval()
@@ -94,7 +105,8 @@ class Evaluator:
             batch[k] = v.to(self.device)
         with torch.no_grad():
             logits = self.echecker(**batch)
-            probs = torch.sigmoid(logits).detach().cpu().numpy()
+            # probs = torch.sigmoid(logits).detach().cpu().numpy()
+            probs = logits.sigmoid().transpose(0, 1).cpu().numpy()
         has_error = probs[0, -1] > self.error_threshold
         if return_error_prob:
             return has_error, probs[0, -1]
