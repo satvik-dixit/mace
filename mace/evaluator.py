@@ -51,6 +51,7 @@ class Evaluator:
         # assert sbert_model in {'paraphrase-MiniLM-L6-v2', 'paraphrase-TinyBERT-L6-v2', 'paraphrase-mpnet-base-v2'}
         assert clap_model=="MS-CLAP"
         assert echecker_model in PRETRAIN_ECHECKERS
+
         self.batch_size = batch_size
         self.device = device
         self.clap_model = clap_model
@@ -71,11 +72,19 @@ class Evaluator:
         # return torch.stack([self.clap_model.get_text_embeddings([sent]).to('cuda') for sent in sents], dim=0).squeeze()
         return self.clap_model.get_text_embeddings(sents).to('cuda') 
 
+    def encode_audios_clap(self, audio_paths):
+        audio_embs = torch.stack([self.clap_model.get_audio_embeddings([audio_path]).to('cuda') for audio_path in audio_paths], dim=0)
+        return audio_embs
     
     @lru_cache(maxsize=32)   # reuse cache if encode the same sentence
     def encode_sent_clap(self, sent):
         # return self.sbert.encode(sent, convert_to_tensor=True, normalize_embeddings=True)
         return self.clap_model.get_text_embeddings(sent).to('cuda') 
+    
+    def encode_audio_clap(self, audio_path):
+        # audio_embs = torch.stack([self.clap_model.get_audio_embeddings([audio_file]).to('cuda') for audio_file in audio_files], dim=0)
+        return self.clap_model.get_audio_embeddings([audio_path]).to('cuda')
+
 
     def detect_error_sents(self, sents, batch_size=32):
         if len(sents) <= batch_size:
@@ -113,18 +122,42 @@ class Evaluator:
         else:
             return has_error 
 
-    def corpus_score(self, cands, list_refs, agg_score='mean'):
-        assert len(cands) == len(list_refs)
+    def corpus_score(self, cands, list_refs=None, audio_paths=None, config='text-text', agg_score='mean'):
+        assert config in ['combined', 'audio-text', 'text-text']
         assert agg_score in {'none', 'mean', 'max'}
-        rng_ids = [0]
-        all_refs = []
-        for lst in list_refs:
-            rng_ids.append(rng_ids[-1]+len(lst))
-            all_refs.extend(lst)
-        print("Encoding sentences")
-        emb_cands = self.encode_sents_clap(cands, self.batch_size)
-        emb_refs = self.encode_sents_clap(all_refs, self.batch_size)
-        sim_scores = [(emb_cands[i] @ emb_refs[rng_ids[i]:rng_ids[i+1]].T).mean().detach().cpu().item() for i in range(len(cands))]
+
+        if config=='text-text':
+            assert len(cands)==len(list_refs)
+            rng_ids = [0]
+            all_refs = []
+            for lst in list_refs:
+                rng_ids.append(rng_ids[-1]+len(lst))
+                all_refs.extend(lst)
+            emb_cands = self.encode_sents_clap(cands, self.batch_size)
+            emb_refs = self.encode_sents_clap(all_refs, self.batch_size)
+            sim_scores = [(emb_cands[i] @ emb_refs[rng_ids[i]:rng_ids[i+1]].T).mean().detach().cpu().item() for i in range(len(cands))]
+        elif config=='audio-text':
+            assert len(cands)==len(audio_paths)
+            emb_cands = self.encode_sents_clap(cands, self.batch_size)
+            emb_audios = self.encode_audios_clap(audio_paths)
+            sim_scores = [(emb_cands[i] @ emb_audios[i].T).mean().detach().cpu().item() for i in range(len(cands))]
+        elif config=='combined':
+            assert len(cands)==len(list_refs)
+            assert len(cands)==len(audio_paths)
+            rng_ids = [0]
+            all_refs = []
+            for lst in list_refs:
+                rng_ids.append(rng_ids[-1]+len(lst))
+                all_refs.extend(lst)
+            emb_cands = self.encode_sents_clap(cands, self.batch_size)
+            emb_refs = self.encode_sents_clap(all_refs, self.batch_size)
+            text_sim_scores = [(emb_cands[i] @ emb_refs[rng_ids[i]:rng_ids[i+1]].T).mean().detach().cpu().item() for i in range(len(cands))]
+
+            emb_audios = self.encode_audios_clap(audio_paths)
+            audio_sim_scores = [(emb_cands[i] @ emb_audios[i].T).mean().detach().cpu().item() for i in range(len(cands))]
+
+            sim_scores = text_sim_scores + audio_sim_scores
+
         if self.echecker_model == "none":
             if agg_score == 'mean':
                 return np.mean(sim_scores)
@@ -144,10 +177,22 @@ class Evaluator:
             else:
                 return penalized_scores
 
-    def sentence_score(self, cand, refs, return_error_prob=False):
+    def sentence_score(self, cand, refs=None, audio_path=None, config='text-text', return_error_prob=False):
+        assert config in ['combined', 'audio-text', 'text-text']
+        
         emb_cand = self.encode_sent_clap(cand)
-        emb_refs = self.encode_sents_clap(refs, self.batch_size)
-        scores = emb_cand @ emb_refs.T
+        if config=='audio-text':
+            emb_refs_audio = self.encode_audio_clap(audio_path)
+            scores = emb_cand @ emb_refs_audio.T
+
+        elif config=='text-text':
+            emb_refs_text = self.encode_sents_clap(refs, self.batch_size)
+            scores = emb_cand @ emb_refs_text.T
+
+        elif config=='combined':
+            emb_refs_audio = self.encode_audio_clap(audio_path)
+            emb_refs_text = self.encode_sents_clap(refs, self.batch_size)
+            scores = emb_cand @ emb_refs_audio.T + emb_cand @ emb_refs_text.T
         
         if self.echecker_model == "none":
             return scores.mean().detach().cpu().item()
