@@ -3,14 +3,13 @@ import numpy as np
 from .evaluator import Evaluator
 
 
-class Fense:
-
+class MACE:
     def __init__(self,
-                 sbert_model="paraphrase-TinyBERT-L6-v2",
+                 CLAP_model="MS-CLAP",
                  echecker_model="echecker_clotho_audiocaps_base",
-                 penalty=0.9) -> None:
+                 penalty=0.3) -> None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.evaluator = Evaluator(device=device, sbert_model=sbert_model,
+        self.evaluator = Evaluator(device=device, CLAP_model=CLAP_model,
             echecker_model=echecker_model, penalty=penalty)
         
     def compute_score(self, gts, res):
@@ -23,4 +22,4 @@ class Fense:
         return average_score, np.array(scores)
 
     def method(self):
-        return "Fense"
+        return "MACE"
