@@ -50,16 +50,15 @@ class Evaluator:
     def __init__(self, batch_size=32, device='cuda', clap_model="MS-CLAP", echecker_model="echecker_clotho_audiocaps_base", error_threshold=0.97, penalty=0.3, use_proxy=False, proxies=None):
         # assert sbert_model in {'paraphrase-MiniLM-L6-v2', 'paraphrase-TinyBERT-L6-v2', 'paraphrase-mpnet-base-v2'}
         assert clap_model=="MS-CLAP"
-        assert echecker_model in PRETRAIN_ECHECKERS
+        clap_model = CLAP(version='2023', use_cuda=True if device=='cuda' else 'cpu') 
 
+        assert echecker_model in PRETRAIN_ECHECKERS
         self.batch_size = batch_size
         self.device = device
         self.clap_model = clap_model
         self.echecker_model = echecker_model
         self.error_threshold = error_threshold
         self.penalty = penalty
-
-        clap_model = CLAP(version='2023', use_cuda=True) 
 
         if echecker_model != "none":
             self.echecker = load_pretrain_echecker(echecker_model, device, use_proxy, proxies)
