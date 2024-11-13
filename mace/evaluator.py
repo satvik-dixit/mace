@@ -19,6 +19,11 @@ PRETRAIN_ECHECKERS = {
     "none": (None, None)
 }
 
+def cosine_similarity(input, target):
+    from torch.nn import CosineSimilarity
+    cos = CosineSimilarity(dim=0, eps=1e-6)
+    return cos(input, target).item()
+
 def _use_new_echecker_loading() -> bool:
     version = transformers.__version__
     major, minor, _patch = map(int, version.split("."))
@@ -50,9 +55,8 @@ class Evaluator:
     def __init__(self, batch_size=32, device='cuda', clap_model="MS-CLAP", echecker_model="echecker_clotho_audiocaps_base", error_threshold=0.97, penalty=0.3, use_proxy=False, proxies=None):
         # assert sbert_model in {'paraphrase-MiniLM-L6-v2', 'paraphrase-TinyBERT-L6-v2', 'paraphrase-mpnet-base-v2'}
         assert clap_model=="MS-CLAP"
-        clap_model = CLAP(version='2023', use_cuda=True if device=='cuda' else 'cpu') 
-
         assert echecker_model in PRETRAIN_ECHECKERS
+
         self.batch_size = batch_size
         self.device = device
         self.clap_model = clap_model
@@ -60,11 +64,13 @@ class Evaluator:
         self.error_threshold = error_threshold
         self.penalty = penalty
 
+        clap_model = CLAP(version='2023', use_cuda=True) 
+
         if echecker_model != "none":
             self.echecker = load_pretrain_echecker(echecker_model, device, use_proxy, proxies)
             self.echecker_tokenizer = AutoTokenizer.from_pretrained(self.echecker.model_type)
             self.echecker.to(device)
-            self.echecker.eval()
+            self.echecker.eval() 
 
     def encode_sents_clap(self, sents, batch_size=32):
         # return self.sbert.encode(sents, convert_to_tensor=True, normalize_embeddings=True, batch_size=batch_size, show_progress_bar=True)
@@ -134,12 +140,14 @@ class Evaluator:
                 all_refs.extend(lst)
             emb_cands = self.encode_sents_clap(cands, self.batch_size)
             emb_refs = self.encode_sents_clap(all_refs, self.batch_size)
-            sim_scores = [(emb_cands[i] @ emb_refs[rng_ids[i]:rng_ids[i+1]].T).mean().detach().cpu().item() for i in range(len(cands))]
+            # sim_scores = [(emb_cands[i] @ emb_refs[rng_ids[i]:rng_ids[i+1]].T).mean().detach().cpu().item() for i in range(len(cands))]
+            sim_scores = [cosine_similarity(emb_cands[i], emb_refs[rng_ids[i]:rng_ids[i+1]]).mean().detach().cpu().item() for i in range(len(cands))]
         elif config=='audio-text':
             assert len(cands)==len(audio_paths)
             emb_cands = self.encode_sents_clap(cands, self.batch_size)
             emb_audios = self.encode_audios_clap(audio_paths)
-            sim_scores = [(emb_cands[i] @ emb_audios[i].T).mean().detach().cpu().item() for i in range(len(cands))]
+            # sim_scores = [(emb_cands[i] @ emb_audios[i].T).mean().detach().cpu().item() for i in range(len(cands))]
+            sim_scores = [cosine_similarity(emb_cands[i], emb_audios[i]).mean().detach().cpu().item() for i in range(len(cands))]
         elif config=='combined':
             assert len(cands)==len(list_refs)
             assert len(cands)==len(audio_paths)
@@ -150,12 +158,13 @@ class Evaluator:
                 all_refs.extend(lst)
             emb_cands = self.encode_sents_clap(cands, self.batch_size)
             emb_refs = self.encode_sents_clap(all_refs, self.batch_size)
-            text_sim_scores = [(emb_cands[i] @ emb_refs[rng_ids[i]:rng_ids[i+1]].T).mean().detach().cpu().item() for i in range(len(cands))]
+            # text_sim_scores = [(emb_cands[i] @ emb_refs[rng_ids[i]:rng_ids[i+1]].T).mean().detach().cpu().item() for i in range(len(cands))]
+            text_sim_scores = [cosine_similarity(emb_cands[i], emb_refs[rng_ids[i]:rng_ids[i+1]]).mean().detach().cpu().item() for i in range(len(cands))]
 
             emb_audios = self.encode_audios_clap(audio_paths)
-            audio_sim_scores = [(emb_cands[i] @ emb_audios[i].T).mean().detach().cpu().item() for i in range(len(cands))]
-
-            sim_scores = text_sim_scores + audio_sim_scores
+            # audio_sim_scores = [(emb_cands[i] @ emb_audios[i].T).mean().detach().cpu().item() for i in range(len(cands))]
+            audio_sim_scores = [cosine_similarity(emb_cands[i], emb_audios[i]).mean().detach().cpu().item() for i in range(len(cands))]
+            sim_scores = (text_sim_scores + audio_sim_scores) / 2
 
         if self.echecker_model == "none":
             if agg_score == 'mean':
@@ -182,16 +191,19 @@ class Evaluator:
         emb_cand = self.encode_sent_clap(cand)
         if config=='audio-text':
             emb_refs_audio = self.encode_audio_clap(audio_path)
-            scores = emb_cand @ emb_refs_audio.T
+            # scores = emb_cand @ emb_refs_audio.T
+            scores = cosine_similarity(emb_cand, emb_refs_audio)
 
         elif config=='text-text':
             emb_refs_text = self.encode_sents_clap(refs, self.batch_size)
-            scores = emb_cand @ emb_refs_text.T
+            # scores = emb_cand @ emb_refs_text.T
+            scores = cosine_similarity(emb_cand, emb_refs_text)
 
         elif config=='combined':
             emb_refs_audio = self.encode_audio_clap(audio_path)
             emb_refs_text = self.encode_sents_clap(refs, self.batch_size)
-            scores = emb_cand @ emb_refs_audio.T + emb_cand @ emb_refs_text.T
+            # scores = emb_cand @ emb_refs_audio.T + emb_cand @ emb_refs_text.T
+            scores = (cosine_similarity(emb_cand, emb_refs_audio) + cosine_similarity(emb_cand, emb_refs_text)) / 2
         
         if self.echecker_model == "none":
             return scores.mean().detach().cpu().item()
