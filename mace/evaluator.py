@@ -193,8 +193,8 @@ class Evaluator:
             return score
 
         # Calculate average or max score
-        # score = score.mean(dim=1) if average else score.max(dim=1)[0]
-        # print('avg_score:', score)
+        score = score.mean(dim=1) if average else score.max(dim=1)[0]
+        print('avg_score:', score)
         print('avg_score shape:', score.shape)
         return score    
 
