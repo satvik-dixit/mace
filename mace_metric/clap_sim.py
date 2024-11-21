@@ -71,7 +71,7 @@ def clap_sim(
     clap_sim_score = clap_sim_scores.mean()
 
     clap_sim_score = torch.as_tensor(clap_sim_score)
-    clap_sim_score = torch.from_numpy(clap_sim_score)
+    clap_sim_scores = torch.as_tensor(clap_sim_scores)
 
     if return_all_scores:
         clap_sim_outs_corpus = {
