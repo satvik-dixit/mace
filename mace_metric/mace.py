@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import logging
+
 from typing import Optional, Union
-from transformers.models.auto.tokenization_auto import AutoTokenizer
-from msclap import CLAP
+
 import torch
 from torch import Tensor
+from transformers.models.auto.tokenization_auto import AutoTokenizer
+from msclap import CLAP
 
 from fer import (
     fer,
@@ -25,7 +27,8 @@ from utils.checks import check_metric_inputs
 pylog = logging.getLogger(__name__)
 
 
-def fense(
+def mace(
+    method: str,
     candidates: list[str],
     mult_references: list[list[str]],
     return_all_scores: bool = True,
@@ -59,7 +62,7 @@ def fense(
     :param error_threshold: The threshold used to detect fluency errors for echecker model. defaults to 0.9.
     :param penalty: The penalty coefficient applied. Higher value means to lower the cos-sim scores when an error is detected. defaults to 0.9.
     :param device: The PyTorch device used to run FENSE models. If "cuda_if_available", it will use cuda if available. defaults to "cuda_if_available".
-    :param batch_size: The batch size of the sBERT and echecker models. defaults to 32.
+    :param batch_size: The batch size of the CLAP and echecker models. defaults to 32.
     :param reset_state: If True, reset the state of the PyTorch global generator after the initialization of the pre-trained models. defaults to True.
     :param return_probs: If True, return each individual error probability given by the fluency detector model. defaults to False.
     :param verbose: The verbose level. defaults to 0.
@@ -76,16 +79,43 @@ def fense(
         reset_state=reset_state,
         verbose=verbose,
     )
-    clap_sim_outs: tuple[dict[str, Tensor], dict[str, Tensor]] = clap_sim(  # type: ignore
-        candidates=candidates,
-        mult_references=mult_references,
-        return_all_scores=True,
-        sbert_model=clap_model,
-        device=device,
-        batch_size=batch_size,
-        reset_state=reset_state,
-        verbose=verbose,
-    )
+    if method in ["text", "audio"]:
+        clap_sim_outs: tuple[dict[str, Tensor], dict[str, Tensor]] = clap_sim(  # type: ignore
+            method=method,
+            candidates=candidates,
+            mult_references=mult_references,
+            return_all_scores=True,
+            clap_model=clap_model,
+            device=device,
+            batch_size=batch_size,
+            reset_state=reset_state,
+            verbose=verbose,
+        )
+    elif method == "combined":
+        clap_sim_outs_text: tuple[dict[str, Tensor], dict[str, Tensor]] = clap_sim(  # type: ignore
+            method="text",
+            candidates=candidates,
+            mult_references=mult_references,
+            return_all_scores=True,
+            clap_model=clap_model,
+            device=device,
+            batch_size=batch_size,
+            reset_state=reset_state,
+            verbose=verbose,
+        )
+        clap_sim_outs_audio: tuple[dict[str, Tensor], dict[str, Tensor]] = clap_sim(  # type: ignore
+            method="audio",
+            candidates=candidates,
+            mult_references=mult_references,
+            return_all_scores=True,
+            clap_model=clap_model,
+            device=device,
+            batch_size=batch_size,
+            reset_state=reset_state,
+            verbose=verbose,
+        )
+        clap_sim_outs = (clap_sim_outs_text + clap_sim_outs_audio)/2
+
     fer_outs: tuple[dict[str, Tensor], dict[str, Tensor]] = fer(  # type: ignore
         candidates=candidates,
         return_all_scores=True,
