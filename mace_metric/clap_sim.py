@@ -97,8 +97,6 @@ def _load_clap(
     if isinstance(clap_model, str):
         clap_model = CLAP(version='2023', use_cuda=(device=='cuda'))
 
-    clap_model.to(device=device)
-
     if reset_state:
         torch.random.set_rng_state(state)
     return clap_model
