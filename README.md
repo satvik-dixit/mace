@@ -9,12 +9,13 @@ MACE achieves a 3.28% and 4.36% relative accuracy improvement over the FENSE met
 ```
 git clone https://github.com/satvik-dixit/mace.git
 pip install -q msclap
+cd mace
 pip install -r requirements.txt
 ```
 
 ## Using MACE to evaluate captions
 ```
-cd mace/mace_metric
+cd mace_metric
 from mace import mace
 
 candidates: list[str] = ["a man is speaking", "rain falls"]
@@ -23,15 +24,15 @@ audio_paths: list[str] = ["/content/mace/assets/woman_singing.wav", "/content/ma
 
 # MACE_text
 corpus_scores = mace(method='text', candidates=candidates, mult_references=mult_references)
-print('corpus_scores', corpus_scores)
+print('corpus_scores (text):', corpus_scores)
 
 # MACE_audio
 corpus_scores = mace(method='audio', candidates=candidates, audio_paths=audio_paths)
-print('corpus_scores', corpus_scores)
+print('corpus_scores (audio):', corpus_scores)
 
 # MACE
 corpus_scores = mace(method='combined', candidates=candidates, mult_references=mult_references, audio_paths=audio_paths)
-print('corpus_scores', corpus_scores)
+print('corpus_scores (combined):', corpus_scores)
 
 ```
 
