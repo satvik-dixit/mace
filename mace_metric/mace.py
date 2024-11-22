@@ -127,7 +127,11 @@ def mace(
             reset_state=reset_state,
             verbose=verbose,
         )
-        clap_sim_outs = (clap_sim_outs_text + clap_sim_outs_audio)/2
+        clap_sim_outs_corpus_text, clap_sim_outs_sents_text = clap_sim_outs_text
+        clap_sim_outs_corpus_audio, clap_sim_outs_sents_audio = clap_sim_outs_audio
+        clap_sim_outs_corpus = average_dicts(clap_sim_outs_corpus_text, clap_sim_outs_corpus_audio)
+        clap_sim_outs_sents = average_dicts(clap_sim_outs_sents_text, clap_sim_outs_sents_audio)
+        clap_sim_outs = (clap_sim_outs_corpus, clap_sim_outs_sents)
 
     fer_outs: tuple[dict[str, Tensor], dict[str, Tensor]] = fer(  # type: ignore
         candidates=candidates,
@@ -148,6 +152,11 @@ def mace(
     else:
         return mace_outs[0]["mace"]
 
+def average_dicts(dict1, dict2):
+    averaged_dict = {}
+    for key in dict1:
+        averaged_dict[key] = (dict1[key] + dict2[key]) / 2
+    return averaged_dict
 
 def _mace_from_outputs(
     clap_sim_outs: tuple[dict[str, Tensor], dict[str, Tensor]],
