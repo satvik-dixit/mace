@@ -21,7 +21,8 @@ DEFAULT_CLAP_SIM_MODEL = "MS-CLAP-2023"
 def clap_sim(
     method: str,
     candidates: list[str],
-    mult_references: list[list[str]],
+    mult_references: list[list[str]] = None,
+    audio_paths: list[str] = None,
     return_all_scores: bool = True,
     clap_model: Union[str, CLAP] = DEFAULT_CLAP_SIM_MODEL,
     device: Union[str, torch.device, None] = "cuda_if_available",
@@ -43,27 +44,36 @@ def clap_sim(
     :param verbose: The verbose level. defaults to 0.
     :returns: A tuple of globals and locals scores or a scalar tensor with the main global score.
     """
-    check_metric_inputs(candidates, mult_references)
-
     # Init models
     clap_model = _load_clap(clap_model, device, reset_state)
 
-    # Encode sents
-    rng_ids = [0]
-    for refs in mult_references:
-        rng_ids.append(rng_ids[-1] + len(refs))
-
-    flat_references = [ref for refs in mult_references for ref in refs]
-
     cands_embs = _encode_sents_clap(clap_model, candidates, batch_size, verbose)
+
     if method == 'text':
+        rng_ids = [0]
+        for refs in mult_references:
+            rng_ids.append(rng_ids[-1] + len(refs))
+        flat_references = [ref for refs in mult_references for ref in refs]
         mrefs_embs = _encode_sents_clap(clap_model, flat_references, batch_size, verbose)
     elif method == 'audio':
-        mrefs_embs = _encode_audios_clap(clap_model, flat_references, batch_size, verbose)
+        rng_ids = len(audio_paths)
+        mrefs_embs = _encode_audios_clap(clap_model, audio_paths, batch_size, verbose)
     else:
         raise ValueError(f"Invalid method: {method}")
 
     # Compute CLAP similarities
+
+    print('method:', method)
+    print('cands_embs.shape', cands_embs.shape)
+    print('mrefs_embs.shape', mrefs_embs.shape)
+    for i in range(len(cands_embs)):
+        print('cands_embs[i].shape:', cands_embs[i].shape)
+        print('mrefs_embs[rng_ids[i] : rng_ids[i +1]].shape:', mrefs_embs[rng_ids[i] : rng_ids[i +1]].shape)
+        print('cands_embs[i] @ mrefs_embs[rng_ids[i] : rng_ids[i + 1]].T:', cands_embs[i] @ mrefs_embs[rng_ids[i] : rng_ids[i + 1]].T)
+        print('(cands_embs[i] @ mrefs_embs[rng_ids[i] : rng_ids[i + 1]].T).mean().item():', (cands_embs[i] @ mrefs_embs[rng_ids[i] : rng_ids[i + 1]].T).mean().item())
+        print()
+    print()
+
     clap_sim_scores = [(cands_embs[i] @ mrefs_embs[rng_ids[i] : rng_ids[i + 1]].T).mean().item()for i in range(len(cands_embs))]
     clap_sim_scores = np.array(clap_sim_scores)
 
@@ -72,6 +82,10 @@ def clap_sim(
 
     clap_sim_score = torch.as_tensor(clap_sim_score)
     clap_sim_scores = torch.as_tensor(clap_sim_scores)
+
+    print('clap_sim_score:', clap_sim_score)
+    print('clap_sim_scores:', clap_sim_scores)
+    print()
 
     if return_all_scores:
         clap_sim_outs_corpus = {
