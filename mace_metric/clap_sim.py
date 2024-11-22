@@ -10,7 +10,7 @@ import torch
 
 from msclap import CLAP
 from torch import Tensor
-
+from torch.nn import CosineSimilarity
 from utils.checks import check_metric_inputs
 from utils.globals import _get_device
 
