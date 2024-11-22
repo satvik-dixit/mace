@@ -61,19 +61,6 @@ def clap_sim(
     else:
         raise ValueError(f"Invalid method: {method}")
 
-    # Compute CLAP similarities
-
-    print('method:', method)
-    print('cands_embs.shape', cands_embs.shape)
-    print('mrefs_embs.shape', mrefs_embs.shape)
-    for i in range(len(cands_embs)):
-        print('cands_embs[i].shape:', cands_embs[i].shape)
-        print('mrefs_embs[rng_ids[i] : rng_ids[i +1]].shape:', mrefs_embs[rng_ids[i] : rng_ids[i +1]].shape)
-        print('cands_embs[i] @ mrefs_embs[rng_ids[i] : rng_ids[i + 1]].T:', cands_embs[i] @ mrefs_embs[rng_ids[i] : rng_ids[i + 1]].T)
-        print('(cands_embs[i] @ mrefs_embs[rng_ids[i] : rng_ids[i + 1]].T).mean().item():', (cands_embs[i] @ mrefs_embs[rng_ids[i] : rng_ids[i + 1]].T).mean().item())
-        print()
-    print()
-
     # clap_sim_scores = [(cands_embs[i] @ mrefs_embs[rng_ids[i] : rng_ids[i + 1]].T).mean().item()for i in range(len(cands_embs))]
     clap_sim_scores = [cosine_similarity(cands_embs[i], mrefs_embs[rng_ids[i] : rng_ids[i + 1]]).mean().item() for i in range(len(cands_embs))]
     clap_sim_scores = np.array(clap_sim_scores)
@@ -83,10 +70,6 @@ def clap_sim(
 
     clap_sim_score = torch.as_tensor(clap_sim_score)
     clap_sim_scores = torch.as_tensor(clap_sim_scores)
-
-    print('clap_sim_score:', clap_sim_score)
-    print('clap_sim_scores:', clap_sim_scores)
-    print()
 
     if return_all_scores:
         clap_sim_outs_corpus = {
@@ -128,11 +111,6 @@ def _encode_sents_clap(
     verbose: int = 0,
 ) -> Tensor:
     clap_embeddings = clap_model.get_text_embeddings(sents)
-    # print('clap_embeddings:', clap_embeddings)
-    # print('clap_embeddings.shape:', clap_embeddings.shape)
-    # normalized_clap_embeddings = torch.nn.functional.normalize(clap_embeddings, p=2, dim=1)
-    # print('normalized_clap_embeddings:', normalized_clap_embeddings)
-    # print('normalized_clap_embeddings.shape:', normalized_clap_embeddings.shape)
     return clap_embeddings
 
 @torch.no_grad()
