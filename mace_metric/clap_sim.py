@@ -56,7 +56,7 @@ def clap_sim(
         flat_references = [ref for refs in mult_references for ref in refs]
         mrefs_embs = _encode_sents_clap(clap_model, flat_references, batch_size, verbose)
     elif method == 'audio':
-        rng_ids = [i for i in range(len(audio_paths))]
+        rng_ids = [i for i in range(len(audio_paths)+1)]
         mrefs_embs = _encode_audios_clap(clap_model, audio_paths, batch_size, verbose)
     else:
         raise ValueError(f"Invalid method: {method}")
@@ -123,13 +123,13 @@ def _encode_sents_clap(
     batch_size: int = 32,
     verbose: int = 0,
 ) -> Tensor:
-    return clap_model.get_text_embeddings(
-        sents,
-        # convert_to_tensor=True,
-        # normalize_embeddings=True,
-        # batch_size=batch_size,
-        # show_progress_bar=verbose >= 2,
-    )  # type: ignore
+    clap_embeddings = clap_model.get_text_embeddings(sents)
+    print('clap_embeddings:', clap_embeddings)
+    print('clap_embeddings.shape:', clap_embeddings.shape)
+    normalized_clap_embeddings = torch.nn.functional.normalize(clap_embeddings, p=2, dim=1)
+    print('normalized_clap_embeddings:', normalized_clap_embeddings)
+    print('normalized_clap_embeddings.shape:', normalized_clap_embeddings.shape)
+    return normalized_clap_embeddings
 
 @torch.no_grad()
 def _encode_audios_clap(
@@ -138,10 +138,6 @@ def _encode_audios_clap(
     batch_size: int = 32,
     verbose: int = 0,
 ) -> Tensor:
-    return clap_model.get_audio_embeddings(
-        audio_paths,
-        # convert_to_tensor=True,
-        # normalize_embeddings=True,
-        # batch_size=batch_size,
-        # show_progress_bar=verbose >= 2,
-    )  # type: ignore
+    clap_embeddings = clap_model.get_text_embeddings(audio_paths)
+    normalized_clap_embeddings = torch.nn.functional.normalize(clap_embeddings, p=2, dim=1)
+    return normalized_clap_embeddings
