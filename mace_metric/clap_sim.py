@@ -74,7 +74,8 @@ def clap_sim(
         print()
     print()
 
-    clap_sim_scores = [(cands_embs[i] @ mrefs_embs[rng_ids[i] : rng_ids[i + 1]].T).mean().item()for i in range(len(cands_embs))]
+    # clap_sim_scores = [(cands_embs[i] @ mrefs_embs[rng_ids[i] : rng_ids[i + 1]].T).mean().item()for i in range(len(cands_embs))]
+    clap_sim_scores = [cosine_similarity(cands_embs[i], mrefs_embs[rng_ids[i] : rng_ids[i + 1]]).mean().item() for i in range(len(cands_embs))]
     clap_sim_scores = np.array(clap_sim_scores)
 
     # Aggregate and return
@@ -99,6 +100,9 @@ def clap_sim(
     else:
         return clap_sim_score
 
+def cosine_similarity(input, target):
+    cos = CosineSimilarity(dim=-1, eps=1e-6)  
+    return cos(input.unsqueeze(0), target)
 
 def _load_clap(
     clap_model: Union[str, CLAP] = DEFAULT_CLAP_SIM_MODEL,
@@ -124,12 +128,12 @@ def _encode_sents_clap(
     verbose: int = 0,
 ) -> Tensor:
     clap_embeddings = clap_model.get_text_embeddings(sents)
-    print('clap_embeddings:', clap_embeddings)
-    print('clap_embeddings.shape:', clap_embeddings.shape)
-    normalized_clap_embeddings = torch.nn.functional.normalize(clap_embeddings, p=2, dim=1)
-    print('normalized_clap_embeddings:', normalized_clap_embeddings)
-    print('normalized_clap_embeddings.shape:', normalized_clap_embeddings.shape)
-    return normalized_clap_embeddings
+    # print('clap_embeddings:', clap_embeddings)
+    # print('clap_embeddings.shape:', clap_embeddings.shape)
+    # normalized_clap_embeddings = torch.nn.functional.normalize(clap_embeddings, p=2, dim=1)
+    # print('normalized_clap_embeddings:', normalized_clap_embeddings)
+    # print('normalized_clap_embeddings.shape:', normalized_clap_embeddings.shape)
+    return clap_embeddings
 
 @torch.no_grad()
 def _encode_audios_clap(
@@ -139,5 +143,5 @@ def _encode_audios_clap(
     verbose: int = 0,
 ) -> Tensor:
     clap_embeddings = clap_model.get_text_embeddings(audio_paths)
-    normalized_clap_embeddings = torch.nn.functional.normalize(clap_embeddings, p=2, dim=1)
-    return normalized_clap_embeddings
+    # normalized_clap_embeddings = torch.nn.functional.normalize(clap_embeddings, p=2, dim=1)
+    return clap_embeddings
