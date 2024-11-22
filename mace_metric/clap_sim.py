@@ -65,7 +65,11 @@ def clap_sim(
 
     print('method:', method)
     print('cands_embs.shape', cands_embs.shape)
+    print(cands_embs)
+    print()
     print('mrefs_embs.shape', mrefs_embs.shape)
+    print(mrefs_embs)
+    print()
     for i in range(len(cands_embs)):
         print('cands_embs[i].shape:', cands_embs[i].shape)
         print('mrefs_embs[rng_ids[i] : rng_ids[i +1]].shape:', mrefs_embs[rng_ids[i] : rng_ids[i +1]].shape)
