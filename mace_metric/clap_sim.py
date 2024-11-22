@@ -56,7 +56,7 @@ def clap_sim(
         flat_references = [ref for refs in mult_references for ref in refs]
         mrefs_embs = _encode_sents_clap(clap_model, flat_references, batch_size, verbose)
     elif method == 'audio':
-        rng_ids = len(audio_paths)
+        rng_ids = [i for i in range(len(audio_paths))]
         mrefs_embs = _encode_audios_clap(clap_model, audio_paths, batch_size, verbose)
     else:
         raise ValueError(f"Invalid method: {method}")
