@@ -30,7 +30,8 @@ pylog = logging.getLogger(__name__)
 def mace(
     method: str,
     candidates: list[str],
-    mult_references: list[list[str]],
+    mult_references: list[list[str]] = None,
+    audio_paths: list[str] = None,
     return_all_scores: bool = True,
     # CLAP args
     clap_model: Union[str, CLAP] = DEFAULT_CLAP_SIM_MODEL,
@@ -68,7 +69,7 @@ def mace(
     :param verbose: The verbose level. defaults to 0.
     :returns: A tuple of globals and locals scores or a scalar tensor with the main global score.
     """
-    check_metric_inputs(candidates, mult_references)
+    # check_metric_inputs(candidates, mult_references)
 
     # Init models
     clap_model, echecker, echecker_tokenizer = _load_models_and_tokenizer(
@@ -79,12 +80,24 @@ def mace(
         reset_state=reset_state,
         verbose=verbose,
     )
-    if method in ["text", "audio"]:
+    if method =="text":
         clap_sim_outs: tuple[dict[str, Tensor], dict[str, Tensor]] = clap_sim(  # type: ignore
             method=method,
             candidates=candidates,
             mult_references=mult_references,
-            return_all_scores=True,
+            return_all_scores=False,
+            clap_model=clap_model,
+            device=device,
+            batch_size=batch_size,
+            reset_state=reset_state,
+            verbose=verbose,
+        )
+    elif method == "audio":
+        clap_sim_outs: tuple[dict[str, Tensor], dict[str, Tensor]] = clap_sim(  # type: ignore
+            method=method,
+            candidates=candidates,
+            audio_paths=audio_paths,
+            return_all_scores=False,
             clap_model=clap_model,
             device=device,
             batch_size=batch_size,
@@ -96,7 +109,7 @@ def mace(
             method="text",
             candidates=candidates,
             mult_references=mult_references,
-            return_all_scores=True,
+            return_all_scores=False,
             clap_model=clap_model,
             device=device,
             batch_size=batch_size,
@@ -106,8 +119,8 @@ def mace(
         clap_sim_outs_audio: tuple[dict[str, Tensor], dict[str, Tensor]] = clap_sim(  # type: ignore
             method="audio",
             candidates=candidates,
-            mult_references=mult_references,
-            return_all_scores=True,
+            audio_paths=audio_paths,
+            return_all_scores=False,
             clap_model=clap_model,
             device=device,
             batch_size=batch_size,
