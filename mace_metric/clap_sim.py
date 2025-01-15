@@ -132,6 +132,6 @@ def _encode_audios_clap(
     batch_size: int = 32,
     verbose: int = 0,
 ) -> Tensor:
-    clap_embeddings = clap_model.get_text_embeddings(audio_paths)
+    clap_embeddings = clap_model.get_audio_embeddings(audio_paths)
     # normalized_clap_embeddings = torch.nn.functional.normalize(clap_embeddings, p=2, dim=1)
     return clap_embeddings
