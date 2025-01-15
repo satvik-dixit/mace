@@ -18,6 +18,7 @@ from utils.globals import _get_device
 pylog = logging.getLogger(__name__)
 DEFAULT_CLAP_SIM_MODEL = "MS-CLAP-2023"
 
+
 def clap_sim(
     method: str,
     candidates: list[str],
@@ -49,20 +50,27 @@ def clap_sim(
 
     cands_embs = _encode_sents_clap(clap_model, candidates, batch_size, verbose)
 
-    if method == 'text':
+    if method == "text":
         rng_ids = [0]
         for refs in mult_references:
             rng_ids.append(rng_ids[-1] + len(refs))
         flat_references = [ref for refs in mult_references for ref in refs]
-        mrefs_embs = _encode_sents_clap(clap_model, flat_references, batch_size, verbose)
-    elif method == 'audio':
-        rng_ids = [i for i in range(len(audio_paths)+1)]
+        mrefs_embs = _encode_sents_clap(
+            clap_model, flat_references, batch_size, verbose
+        )
+    elif method == "audio":
+        rng_ids = [i for i in range(len(audio_paths) + 1)]
         mrefs_embs = _encode_audios_clap(clap_model, audio_paths, batch_size, verbose)
     else:
         raise ValueError(f"Invalid method: {method}")
 
     # clap_sim_scores = [(cands_embs[i] @ mrefs_embs[rng_ids[i] : rng_ids[i + 1]].T).mean().item()for i in range(len(cands_embs))]
-    clap_sim_scores = [cosine_similarity(cands_embs[i], mrefs_embs[rng_ids[i] : rng_ids[i + 1]]).mean().item() for i in range(len(cands_embs))]
+    clap_sim_scores = [
+        cosine_similarity(cands_embs[i], mrefs_embs[rng_ids[i] : rng_ids[i + 1]])
+        .mean()
+        .item()
+        for i in range(len(cands_embs))
+    ]
     clap_sim_scores = np.array(clap_sim_scores)
 
     # Aggregate and return
@@ -83,9 +91,11 @@ def clap_sim(
     else:
         return clap_sim_score
 
+
 def cosine_similarity(input, target):
-    cos = CosineSimilarity(dim=-1, eps=1e-6)  
+    cos = CosineSimilarity(dim=-1, eps=1e-6)
     return cos(input.unsqueeze(0), target)
+
 
 def _load_clap(
     clap_model: Union[str, CLAP] = DEFAULT_CLAP_SIM_MODEL,
@@ -96,7 +106,8 @@ def _load_clap(
 
     device = _get_device(device)
     if isinstance(clap_model, str):
-        clap_model = CLAP(version='2023', use_cuda=(device=='cuda'))
+        use_cuda = device is not None and device.type == "cuda"
+        clap_model = CLAP(version="2023", use_cuda=use_cuda)
 
     if reset_state:
         torch.random.set_rng_state(state)
@@ -112,6 +123,7 @@ def _encode_sents_clap(
 ) -> Tensor:
     clap_embeddings = clap_model.get_text_embeddings(sents)
     return clap_embeddings
+
 
 @torch.no_grad()
 def _encode_audios_clap(
