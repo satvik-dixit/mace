@@ -38,7 +38,7 @@ def mace(
     # FluencyError args
     echecker: Union[str, BERTFlatClassifier] = DEFAULT_FER_MODEL,
     echecker_tokenizer: Optional[AutoTokenizer] = None,
-    error_threshold: float = 0.9,
+    error_threshold: float = 0.97,
     device: Union[str, torch.device, None] = "cuda_if_available",
     batch_size: int = 32,
     reset_state: bool = True,
@@ -80,7 +80,7 @@ def mace(
         reset_state=reset_state,
         verbose=verbose,
     )
-    if method =="text":
+    if method == "text":
         clap_sim_outs: tuple[dict[str, Tensor], dict[str, Tensor]] = clap_sim(  # type: ignore
             method=method,
             candidates=candidates,
@@ -129,8 +129,12 @@ def mace(
         )
         clap_sim_outs_corpus_text, clap_sim_outs_sents_text = clap_sim_outs_text
         clap_sim_outs_corpus_audio, clap_sim_outs_sents_audio = clap_sim_outs_audio
-        clap_sim_outs_corpus = average_dicts(clap_sim_outs_corpus_text, clap_sim_outs_corpus_audio)
-        clap_sim_outs_sents = average_dicts(clap_sim_outs_sents_text, clap_sim_outs_sents_audio)
+        clap_sim_outs_corpus = average_dicts(
+            clap_sim_outs_corpus_text, clap_sim_outs_corpus_audio
+        )
+        clap_sim_outs_sents = average_dicts(
+            clap_sim_outs_sents_text, clap_sim_outs_sents_audio
+        )
         clap_sim_outs = (clap_sim_outs_corpus, clap_sim_outs_sents)
 
     fer_outs: tuple[dict[str, Tensor], dict[str, Tensor]] = fer(  # type: ignore
@@ -152,11 +156,13 @@ def mace(
     else:
         return mace_outs[0]["mace"]
 
+
 def average_dicts(dict1, dict2):
     averaged_dict = {}
     for key in dict1:
         averaged_dict[key] = (dict1[key] + dict2[key]) / 2
     return averaged_dict
+
 
 def _mace_from_outputs(
     clap_sim_outs: tuple[dict[str, Tensor], dict[str, Tensor]],
